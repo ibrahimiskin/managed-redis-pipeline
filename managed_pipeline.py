@@ -18,6 +18,30 @@ class Pipeline(redis.Redis):
     def __exit__(self, type, value, tb):
         self.managed_close()
 
+    def managed_set(self, name, value, **kwargs):
+        if self.counter < self.batch_size:
+            log.debug("Set operation - key: {}, value: {}".format(name, value))
+            if not self.dry_run:
+                self.pipeline.set(name, value, **kwargs)
+            self.counter += 1
+        else:
+            log.debug("Pipeline will be executed")
+            if not self.dry_run:
+                self.pipeline.execute()
+            self.counter = 0
+
+    def managed_setex(self, name, value, time):
+        if self.counter < self.batch_size:
+            log.debug("Setex operation - key: {}, value: {}".format(name, value))
+            if not self.dry_run:
+                self.pipeline.setex(name, value, time)
+            self.counter += 1
+        else:
+            log.debug("Pipeline will be executed")
+            if not self.dry_run:
+                self.pipeline.execute()
+            self.counter = 0
+
     def managed_hmset(self, name, mapping):
         if self.counter < self.batch_size:
             log.debug("Hmset operation - key: {}, value: {}".format(name, mapping))
