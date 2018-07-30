@@ -29,48 +29,40 @@ class Pipeline(redis.Redis):
         self.counter = 0
 
     def managed_set(self, name, value, **kwargs):
+        logger.debug("Set operation - key: {}, value: {}".format(name, value))
         self.counter += 1
         self.total += 1
-        if self.counter < self.batch_size:
-            logger.debug("Set operation - key: {}, value: {}".format(name, value))
-            if not self.dry_run:
-                self.pipeline.set(name, value, **kwargs)
-        else:
+        if not self.dry_run:
             self.pipeline.set(name, value, **kwargs)
-            self.managed_execute()
+            if not self.counter < self.batch_size:
+                self.managed_execute()
 
     def managed_setex(self, name, time, value):
+        logger.debug("Setex operation - key: {}, value: {}".format(name, value))
         self.counter += 1
         self.total += 1
-        if self.counter < self.batch_size:
-            logger.debug("Setex operation - key: {}, value: {}".format(name, value))
-            if not self.dry_run:
-                self.pipeline.setex(name, time, value)
-        else:
+        if not self.dry_run:
             self.pipeline.setex(name, time, value)
-            self.managed_execute()
+            if not self.counter < self.batch_size:
+                self.managed_execute()
 
     def managed_hmset(self, name, mapping):
+        logger.debug("Hmset operation - key: {}, value: {}".format(name, mapping))
         self.counter += 1
         self.total += 1
-        if self.counter < self.batch_size:
-            logger.debug("Hmset operation - key: {}, value: {}".format(name, mapping))
-            if not self.dry_run:
-                self.pipeline.hmset(name, mapping)
-        else:
+        if not self.dry_run:
             self.pipeline.hmset(name, mapping)
-            self.managed_execute()
+            if not self.counter < self.batch_size:
+                self.managed_execute()
 
     def managed_delete(self, *args):
+        logger.debug("Delete operation - key: {}".format(args))
         self.counter += 1
         self.total += 1
-        if self.counter < self.batch_size:
-            logger.debug("Delete operation - key: {}".format(args))
-            if not self.dry_run:
-                self.pipeline.delete(*args)
-        else:
+        if not self.dry_run:
             self.pipeline.delete(*args)
-            self.managed_execute()
+            if not self.counter < self.batch_size:
+                self.managed_execute()
 
     def managed_close(self):
         logger.debug("Pipeline will be executed at close")
